@@ -80,7 +80,7 @@ use std::str;
 use std::sync::Once;
 
 pub use crate::apply::{ApplyLocation, ApplyOptions};
-pub use crate::attr::AttrValue;
+pub use crate::attr::{AttrValue, AttrOptions};
 pub use crate::blame::{Blame, BlameHunk, BlameIter, BlameOptions};
 pub use crate::blob::{Blob, BlobWriter};
 pub use crate::branch::{Branch, Branches};
@@ -1534,6 +1534,10 @@ bitflags! {
         const INDEX_ONLY = raw::GIT_ATTR_CHECK_INDEX_ONLY as u32;
         /// Do not use the system gitattributes file.
         const NO_SYSTEM = raw::GIT_ATTR_CHECK_NO_SYSTEM as u32;
+        /// TODO
+        const INCLUDE_HEAD = raw::GIT_ATTR_CHECK_INCLUDE_HEAD as u32;
+        /// TODO
+        const INCLUDE_COMMIT = raw::GIT_ATTR_CHECK_INCLUDE_COMMIT as u32;
     }
 }
 

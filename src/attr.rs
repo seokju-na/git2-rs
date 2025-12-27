@@ -1,5 +1,5 @@
-use crate::raw;
-use std::ptr;
+use crate::{raw, Binding, Oid};
+use std::{mem, ptr};
 use std::str;
 
 /// All possible states of an attribute.
@@ -81,6 +81,96 @@ impl PartialEq for AttrValue<'_> {
             (AttrValue::Bytes(left), AttrValue::Bytes(right)) => left == right,
             _ => false,
         }
+    }
+}
+
+/// An options structure for querying attributes.
+pub struct AttrOptions {
+    raw: raw::git_attr_options,
+}
+
+impl Default for AttrOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl AttrOptions {
+    ///
+    pub fn new() -> Self {
+        // Defaults options created in corresponding to `GIT_ATTR_OPTIONS_INIT`
+        let default_options = raw::git_attr_options {
+            version: raw::GIT_ATTR_OPTIONS_VERSION,
+            flags: raw::GIT_ATTR_CHECK_FILE_THEN_INDEX as u32,
+            commit_id: ptr::null(),
+            attr_commit_id: unsafe { mem::zeroed() },
+        };
+        Self { raw: default_options }
+    }
+
+    fn flag(&mut self, opt: u32, val: bool) -> &mut Self {
+        if val {
+            self.raw.flags |= opt;
+        } else {
+            self.raw.flags &= !opt;
+        }
+        self
+    }
+
+    /// Check the working directory, then the index.
+    pub fn check_file_then_index(&mut self, opt: bool) -> &mut Self {
+        self.flag(raw::GIT_ATTR_CHECK_FILE_THEN_INDEX, opt)
+    }
+
+    /// Check the index, then the working directory.
+    pub fn check_index_then_file(&mut self, opt: bool) -> &mut Self {
+        self.flag(raw::GIT_ATTR_CHECK_INDEX_THEN_FILE, opt)
+    }
+
+    /// Check the index only.
+    pub fn check_index_only(&mut self, opt: bool) -> &mut Self {
+        self.flag(raw::GIT_ATTR_CHECK_INDEX_ONLY, opt)
+    }
+
+    /// Do not use the system gitattributes file.
+    pub fn check_no_system(&mut self, opt: bool) -> &mut Self {
+        self.flag(raw::GIT_ATTR_CHECK_NO_SYSTEM, opt)
+    }
+
+    ///
+    pub fn check_include_head(&mut self, opt: bool) -> &mut Self {
+        self.flag(raw::GIT_ATTR_CHECK_INCLUDE_HEAD, opt)
+    }
+
+    ///
+    pub fn check_include_commit(&mut self, opt: bool) -> &mut Self {
+        self.flag(raw::GIT_ATTR_CHECK_INCLUDE_COMMIT, opt)
+    }
+
+    ///
+    pub fn commit_id(&mut self, id: Oid) -> &mut Self {
+        self.raw.commit_id = id.raw();
+        self
+    }
+
+    /// The commit to load attributes from, when `GIT_ATTR_CHECK_INCLUDE_COMMIT` is specified.
+    pub fn attr_commit_id(&mut self, id: Oid) -> &mut Self {
+        unsafe {
+            self.raw.attr_commit_id = *id.raw();
+        }
+        self
+    }
+}
+
+impl Binding for AttrOptions {
+    type Raw = *mut raw::git_attr_options;
+
+    unsafe fn from_raw(opts: *mut raw::git_attr_options) -> Self {
+        Self { raw: *opts }
+    }
+
+    fn raw(&self) -> *mut raw::git_attr_options {
+        &self.raw as *const _ as *mut _
     }
 }
 

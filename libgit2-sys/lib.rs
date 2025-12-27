@@ -950,6 +950,18 @@ pub const GIT_ATTR_CHECK_INDEX_THEN_FILE: u32 = 1;
 pub const GIT_ATTR_CHECK_INDEX_ONLY: u32 = 2;
 pub const GIT_ATTR_CHECK_NO_SYSTEM: u32 = 1 << 2;
 pub const GIT_ATTR_CHECK_INCLUDE_HEAD: u32 = 1 << 3;
+pub const GIT_ATTR_CHECK_INCLUDE_COMMIT: u32 = 1 << 4;
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct git_attr_options {
+    pub version: c_uint,
+    pub flags: u32,
+    pub commit_id: *const git_oid,
+    pub attr_commit_id: git_oid,
+}
+
+pub const GIT_ATTR_OPTIONS_VERSION: c_uint = 1;
 
 #[repr(C)]
 pub struct git_cred {
@@ -3247,6 +3259,13 @@ extern "C" {
         value_out: *mut *const c_char,
         repo: *mut git_repository,
         flags: u32,
+        path: *const c_char,
+        name: *const c_char,
+    ) -> c_int;
+    pub fn git_attr_get_ext(
+        value_out: *mut *const c_char,
+        repo: *mut git_repository,
+        opts: *const git_attr_options,
         path: *const c_char,
         name: *const c_char,
     ) -> c_int;

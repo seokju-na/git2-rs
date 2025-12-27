@@ -35,6 +35,7 @@ use crate::{
 use crate::{Describe, IntoCString, Reflog, RepositoryInitMode, RevparseMode};
 use crate::{DescribeOptions, Diff, DiffOptions, Odb, PackBuilder, TreeBuilder};
 use crate::{Note, Notes, ObjectType, Revwalk, Status, StatusOptions, Statuses, Tag, Transaction};
+use crate::attr::AttrOptions;
 
 type MergeheadForeachCb<'a> = dyn FnMut(&Oid) -> bool + 'a;
 type FetchheadForeachCb<'a> = dyn FnMut(&str, &[u8], &Oid, bool) -> bool + 'a;
@@ -1120,6 +1121,56 @@ impl Repository {
                 &mut ret,
                 self.raw(),
                 flags.bits(),
+                path,
+                name
+            ));
+            Ok(crate::opt_bytes(self, ret))
+        }
+    }
+
+    /// Look up the value of one git attribute for path with extended options.
+    ///
+    /// This function will return a special byte slice if the attribute is set to a special value.
+    /// Interpreting the special byte slice is discouraged. You should always use
+    /// [`AttrValue::from_bytes`](crate::AttrValue::from_bytes) to interpret the return value and
+    /// avoid the special string.
+    ///
+    /// As such, the return type of this function will probably be changed in the next major version
+    /// to prevent interpreting the returned byte slice without checking whether it's special.
+    pub fn get_attr_ext(
+        &self,
+        path: &Path,
+        name: &str,
+        opts: Option<&mut AttrOptions>
+    ) -> Result<Option<&str>, Error> {
+        Ok(self
+          .get_attr_ext_bytes(path, name, opts)?
+          .and_then(|a| str::from_utf8(a).ok()))
+    }
+
+    /// Look up the value of one git attribute for path with extended options.
+    ///
+    /// This function will return a special byte slice if the attribute is set to a special value.
+    /// Interpreting the special byte slice is discouraged. You should always use
+    /// [`AttrValue::from_bytes`](crate::AttrValue::from_bytes) to interpret the return value and
+    /// avoid the special string.
+    ///
+    /// As such, the return type of this function will probably be changed in the next major version
+    /// to prevent interpreting the returned byte slice without checking whether it's special.
+    pub fn get_attr_ext_bytes(
+        &self,
+        path: &Path,
+        name: &str,
+        opts: Option<&mut AttrOptions>
+    ) -> Result<Option<&[u8]>, Error> {
+        let mut ret = ptr::null();
+        let path = util::cstring_to_repo_path(path)?;
+        let name = CString::new(name)?;
+        unsafe {
+            try_call!(raw::git_attr_get_ext(
+                &mut ret,
+                self.raw(),
+                opts.map(|o| o.raw()).unwrap_or(ptr::null_mut()),
                 path,
                 name
             ));
